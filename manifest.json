@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "SkinClub Price Checker",
+  "version": "1.0.0",
+  "description": "Shows CSFloat market prices on Skin.club",
+  "permissions": [],
+  "host_permissions": [
+    "https://skin.club/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://skin.club/*"],
+      "js": ["content.js"],
+      "css": ["styles.css"]
+    }
+  ]
+}
