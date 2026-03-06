@@ -5,7 +5,8 @@
   "description": "Shows CSFloat market prices on Skin.club",
   "permissions": [],
   "host_permissions": [
-    "https://skin.club/*"
+    "https://skin.club/*",
+    "http://localhost:3000/*"
   ],
   "content_scripts": [
     {
