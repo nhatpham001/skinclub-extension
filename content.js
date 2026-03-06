@@ -3,10 +3,8 @@ console.log('[SkinClub] Extension loaded!');
 
 const BACKEND_URL = 'http://localhost:3000';
 
-// Parse item name into components matching our backend schema
+// Parse item name into components
 function parseItemName(fullName) {
-  // Example: "StatTrak™ AK-47 | Redline (Field-Tested)"
-  
   const stattrak = fullName.includes('StatTrak™');
   
   // Extract wear from parentheses
@@ -32,16 +30,14 @@ function parseItemName(fullName) {
     name = cleanName.toLowerCase();
   }
   
-  // Convert wear to lowercase too
   const wearLower = wear ? wear.toLowerCase() : null;
   
   return { gun_type, name, wear: wearLower, stattrak };
 }
 
-// Fetch CSFloat price using new URL structure
+// Fetch CSFloat price from backend
 async function fetchCSFloatPrice(parsed) {
   try {
-    // Build URL: /api/price/:stattrak/:gun_type/:name/:wear
     const stattrak = parsed.stattrak.toString();
     const gun_type = encodeURIComponent(parsed.gun_type);
     const name = encodeURIComponent(parsed.name);

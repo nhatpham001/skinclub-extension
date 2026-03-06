@@ -19,8 +19,6 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 let lastFetchTime = 0;
 
 // Parse item details from market_hash_name
-// Example: "StatTrak™ AK-47 | Redline (Field-Tested)"
-// Returns: { gun_type: "AK-47", name: "Redline", wear: "Field-Tested", stattrak: true }
 function parseItemName(marketHashName) {
   const stattrak = marketHashName.includes('StatTrak™');
   
@@ -44,11 +42,9 @@ function parseItemName(marketHashName) {
     gun_type = cleanName.substring(0, pipeIndex).trim().toLowerCase();
     name = cleanName.substring(pipeIndex + 3).trim().toLowerCase();
   } else {
-    // Items without " | " (like cases, stickers)
     name = cleanName.toLowerCase();
   }
   
-  // Convert wear to lowercase too
   const wearLower = wear ? wear.toLowerCase() : null;
   
   return { gun_type, name, wear: wearLower, stattrak };
@@ -72,12 +68,10 @@ async function fetchCSFloatPrices() {
             gun_type: parsed.gun_type,
             name: parsed.name, 
             wear: parsed.wear, 
-            stattrak: parsed.stattrak 
+            stattrak: parsed.stattrak
           },
           update: {
-            $set: {
-              min_price: item.min_price
-            }
+            $set: { min_price: item.min_price }
           },
           upsert: true
         }
@@ -102,15 +96,14 @@ async function ensureFreshData() {
   }
 }
 
-// Get price with clean URL: /api/price/:stattrak/:gun_type/:name/:wear
-// Example: /api/price/true/AK-47/Redline/Field-Tested
+// Get price: /api/price/:stattrak/:gun_type/:name/:wear
 app.get('/api/price/:stattrak/:gun_type/:name/:wear', async (req, res) => {
   await ensureFreshData();
   
   const stattrak = req.params.stattrak === 'true';
-  const gun_type = decodeURIComponent(req.params.gun_type);
-  const name = decodeURIComponent(req.params.name);
-  const wear = decodeURIComponent(req.params.wear);
+  const gun_type = decodeURIComponent(req.params.gun_type).toLowerCase();
+  const name = decodeURIComponent(req.params.name).toLowerCase();
+  const wear = decodeURIComponent(req.params.wear).toLowerCase();
   
   const price = await Price.findOne({ gun_type, name, wear, stattrak });
   
@@ -132,14 +125,13 @@ app.get('/api/price/:stattrak/:gun_type/:name/:wear', async (req, res) => {
   }
 });
 
-// Get price for items without wear (cases, stickers, etc.)
-// Example: /api/price/false/none/Prisma%20Case/none
+// Get price for items without wear
 app.get('/api/price/:stattrak/:gun_type/:name', async (req, res) => {
   await ensureFreshData();
   
   const stattrak = req.params.stattrak === 'true';
-  const gun_type = decodeURIComponent(req.params.gun_type);
-  const name = decodeURIComponent(req.params.name);
+  const gun_type = decodeURIComponent(req.params.gun_type).toLowerCase();
+  const name = decodeURIComponent(req.params.name).toLowerCase();
   
   const price = await Price.findOne({ gun_type, name, wear: null, stattrak });
   
