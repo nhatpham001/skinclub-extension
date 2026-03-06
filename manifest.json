@@ -6,7 +6,7 @@
   "permissions": [],
   "host_permissions": [
     "https://skin.club/*",
-    "http://localhost:3000/*"
+    "https://skinclub-extension.onrender.com/*"
   ],
   "content_scripts": [
     {
