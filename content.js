@@ -1,7 +1,11 @@
 // SkinClub Price Checker - Content Script
 console.log('[SkinClub] Extension loaded!');
 
-const BACKEND_URL = 'https://skinclub-extension.onrender.com';
+// Set to true for local development, false for production
+const USE_LOCAL = false;
+const BACKEND_URL = USE_LOCAL 
+  ? 'http://localhost:3000' 
+  : 'https://skinclub-extension.onrender.com';
 
 // Parse item name into components
 function parseItemName(fullName) {
