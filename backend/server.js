@@ -96,6 +96,18 @@ async function ensureFreshData() {
   }
 }
 
+// Root route
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'SkinClub Price API', 
+    status: 'running',
+    endpoints: [
+      '/api/health',
+      '/api/price/:stattrak/:gun_type/:name/:wear'
+    ]
+  });
+});
+
 // Get price: /api/price/:stattrak/:gun_type/:name/:wear
 app.get('/api/price/:stattrak/:gun_type/:name/:wear', async (req, res) => {
   await ensureFreshData();
