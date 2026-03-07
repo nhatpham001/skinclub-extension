@@ -17,6 +17,7 @@ mongoose.connect(process.env.MONGODB_URI)
 
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 let lastFetchTime = 0;
+let isFetching = false; // Lock to prevent concurrent fetches
 
 // Parse item details from market_hash_name
 function parseItemName(marketHashName) {
@@ -91,8 +92,13 @@ async function fetchCSFloatPrices() {
 
 async function ensureFreshData() {
   const now = Date.now();
-  if (now - lastFetchTime > CACHE_DURATION) {
-    await fetchCSFloatPrices();
+  if (now - lastFetchTime > CACHE_DURATION && !isFetching) {
+    isFetching = true;
+    try {
+      await fetchCSFloatPrices();
+    } finally {
+      isFetching = false;
+    }
   }
 }
 
@@ -176,8 +182,13 @@ app.get('/api/health', async (req, res) => {
 });
 
 // Initial fetch on startup
-mongoose.connection.once('open', () => {
-  fetchCSFloatPrices();
+mongoose.connection.once('open', async () => {
+  isFetching = true;
+  try {
+    await fetchCSFloatPrices();
+  } finally {
+    isFetching = false;
+  }
 });
 
 app.listen(PORT, () => {
