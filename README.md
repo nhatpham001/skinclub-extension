@@ -1,6 +1,6 @@
 # SkinClub Price Checker
 
-A Chrome extension that displays CSFloat market prices on Skin.Club.
+A Chrome extension that displays near-real time of CSFloat market prices on Skin.Club.
 
 ## Installation
 
