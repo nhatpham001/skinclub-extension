@@ -64,7 +64,8 @@ async function fetchCSFloatPrice(parsed) {
 }
 
 async function processItems() {
-  const items = document.querySelectorAll('.list-item');
+  // Support both exchange page (.inventory-list-item) and other pages (.list-item)
+  const items = document.querySelectorAll('.list-item, .inventory-list-item');
   let newItemsCount = 0;
   
   for (const item of items) {
@@ -73,11 +74,16 @@ async function processItems() {
       continue;
     }
     
-    newItemsCount++;
-    
-    // Get item details
+    // Get item details from img alt
     const img = item.querySelector('img');
-    const fullName = img ? img.alt : 'Unknown';
+    const fullName = img ? img.alt : null;
+    
+    // Skip if no valid item name
+    if (!fullName || fullName === 'Unknown') {
+      continue;
+    }
+    
+    newItemsCount++;
     
     // Parse the name into components
     const parsed = parseItemName(fullName);
@@ -89,12 +95,20 @@ async function processItems() {
     const marker = document.createElement('div');
     marker.className = 'csfloat-price';
     marker.textContent = 'Loading...';
-    marker.style.cssText = 'color: #00bcd4; font-size: 12px; margin-top: 4px;';
+    marker.style.cssText = 'color: #00bcd4; font-size: 12px; margin-top: 4px; text-align: center;';
     
-    const priceContainer = item.querySelector('.list-item__price');
-    if (priceContainer) {
-      priceContainer.appendChild(marker);
+    // Try different price container selectors for different page layouts
+    let priceContainer = item.querySelector('.list-item__price');
+    if (!priceContainer) {
+      // Exchange page: find by data-qa attribute or use the price element
+      priceContainer = item.querySelector('[data-qa="_50d2984b6e7d"]');
     }
+    if (!priceContainer) {
+      // Fallback: append to item itself
+      priceContainer = item;
+    }
+    
+    priceContainer.appendChild(marker);
     
     // Fetch CSFloat price
     const priceData = await fetchCSFloatPrice(parsed);

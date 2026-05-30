@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SkinClub Price Checker",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Shows CSFloat market prices on Skin.club",
   "icons": {
     "16": "icon16.png",
