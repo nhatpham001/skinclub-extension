@@ -1,5 +1,8 @@
 const { chromium } = require('playwright');
 
+// Set to false to see browser window (development mode)
+const HEADLESS = true;
+
 // Knife def_index mappings
 const KNIFE_IDS = {
   'Butterfly Knife': 515,
@@ -17,12 +20,12 @@ const GAMMA_DOPPLER_PHASES = {
   // 'Emerald': ???,
 };
 
-// Regular Doppler paint_index by phase (add when we get the IDs)
+// Regular Doppler paint_index by phase
 const DOPPLER_PHASES = {
-  // 'Phase 1': ???,
-  // 'Phase 2': ???,
-  // 'Phase 3': ???,
-  // 'Phase 4': ???,
+  'Phase 1': 418,
+  'Phase 2': 618,
+  'Phase 3': 420,
+  'Phase 4': 421,
   // 'Ruby': ???,
   // 'Sapphire': ???,
   // 'Black Pearl': ???,
@@ -99,8 +102,15 @@ function buildScrapeQueue() {
 async function scrapePrice(item) {
   let browser;
   try {
-    browser = await chromium.launch({ headless: true });
+    browser = await chromium.launch({ headless: HEADLESS });
     const page = await browser.newPage();
+    
+    // Set API key header if available
+    if (process.env.CSFLOAT_API_KEY) {
+      await page.setExtraHTTPHeaders({
+        'Authorization': process.env.CSFLOAT_API_KEY
+      });
+    }
     
     // Build URL with def_index, paint_index, category, sorted by lowest price
     const url = `https://csfloat.com/search?category=${item.category}&def_index=${item.def_index}&paint_index=${item.paint_index}&sort_by=lowest_price`;

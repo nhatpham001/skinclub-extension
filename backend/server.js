@@ -3,6 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const Price = require('./models/Price');
+const DopplerPrice = require('./models/DopplerPrice');
+const { DopplerScraper } = require('./scraper/dopplerScraper');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -171,24 +173,68 @@ app.get('/api/price/:stattrak/:gun_type/:name', async (req, res) => {
   }
 });
 
+// Get Doppler price: /api/doppler/:knife/:skin/:phase/:stattrak
+app.get('/api/doppler/:knife/:skin/:phase/:stattrak', async (req, res) => {
+  const knife = decodeURIComponent(req.params.knife);
+  const skin = decodeURIComponent(req.params.skin);
+  const phase = decodeURIComponent(req.params.phase);
+  const stattrak = req.params.stattrak === 'true';
+  
+  const price = await DopplerPrice.findOne({ knife, skin, phase, stattrak });
+  
+  if (price) {
+    res.json({
+      success: true,
+      knife: price.knife,
+      skin: price.skin,
+      phase: price.phase,
+      stattrak: price.stattrak,
+      min_price: price.min_price,
+      price_usd: (price.min_price / 100).toFixed(2)
+    });
+  } else {
+    res.json({
+      success: false,
+      message: 'Doppler price not found'
+    });
+  }
+});
+
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
   const count = await Price.countDocuments();
+  const dopplerCount = await DopplerPrice.countDocuments();
   res.json({
     status: 'ok',
     cached_items: count,
+    doppler_items: dopplerCount,
     cache_age_seconds: Math.floor((Date.now() - lastFetchTime) / 1000)
   });
 });
 
+// Save function for Doppler scraper
+const saveDopplerPrice = async (data) => {
+  await DopplerPrice.updateOne(
+    { knife: data.knife, skin: data.skin, phase: data.phase, stattrak: data.stattrak },
+    { $set: { min_price: data.min_price, updated_at: new Date() } },
+    { upsert: true }
+  );
+  console.log('[Doppler] Saved:', data.knife, data.skin, data.phase, data.stattrak ? '(ST)' : '', '$' + (data.min_price/100).toFixed(2));
+};
+
 // Initial fetch on startup
 mongoose.connection.once('open', async () => {
+  // Fetch regular prices
   isFetching = true;
   try {
     await fetchCSFloatPrices();
   } finally {
     isFetching = false;
   }
+  
+  // Start Doppler scraper (1 request per minute)
+  const dopplerScraper = new DopplerScraper(saveDopplerPrice);
+  dopplerScraper.start();
 });
 
 app.listen(PORT, () => {

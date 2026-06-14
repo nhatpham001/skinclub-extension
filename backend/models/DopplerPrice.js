@@ -13,13 +13,17 @@ const dopplerPriceSchema = new mongoose.Schema({
   },
   wear: {
     type: String,
-    enum: ['Factory New', 'Minimal Wear'],
-    required: true
+    enum: ['Factory New', 'Minimal Wear', null],
+    default: null
   },
   phase: {
     type: String,
     required: true,
     index: true
+  },
+  stattrak: {
+    type: Boolean,
+    default: false
   },
   min_price: {
     type: Number,
@@ -32,6 +36,6 @@ const dopplerPriceSchema = new mongoose.Schema({
 });
 
 // Compound index for fast lookups
-dopplerPriceSchema.index({ knife: 1, skin: 1, wear: 1, phase: 1 }, { unique: true });
+dopplerPriceSchema.index({ knife: 1, skin: 1, wear: 1, phase: 1, stattrak: 1 }, { unique: true });
 
-module.exports = mongoose.model('DopplerPrice', dopplerPriceSchema);
+module.exports = mongoose.model('DopplerPrice', dopplerPriceSchema, 'dopplers');
