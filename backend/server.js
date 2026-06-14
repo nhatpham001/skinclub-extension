@@ -4,7 +4,14 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const Price = require('./models/Price');
 const DopplerPrice = require('./models/DopplerPrice');
-const { DopplerScraper } = require('./scraper/dopplerScraper');
+
+// Try to load scraper (may not work on Render due to Playwright)
+let DopplerScraper = null;
+try {
+  DopplerScraper = require('./scraper/dopplerScraper').DopplerScraper;
+} catch (err) {
+  console.log('[Warning] Doppler scraper not available:', err.message);
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -232,9 +239,13 @@ mongoose.connection.once('open', async () => {
     isFetching = false;
   }
   
-  // Start Doppler scraper (1 request per minute)
-  const dopplerScraper = new DopplerScraper(saveDopplerPrice);
-  dopplerScraper.start();
+  // Start Doppler scraper (1 request per minute) - only if available
+  if (DopplerScraper) {
+    const dopplerScraper = new DopplerScraper(saveDopplerPrice);
+    dopplerScraper.start();
+  } else {
+    console.log('[Server] Doppler scraper disabled (Playwright not available)');
+  }
 });
 
 app.listen(PORT, () => {
