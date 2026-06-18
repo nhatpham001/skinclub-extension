@@ -7,6 +7,12 @@ const BACKEND_URL = USE_LOCAL
   ? 'http://localhost:3000' 
   : 'https://skinclub-extension.onrender.com';
 
+// Check if item is a Doppler/Gamma Doppler
+function isDoppler(name) {
+  const lowerName = name.toLowerCase();
+  return lowerName.includes('doppler') || lowerName.includes('gamma doppler');
+}
+
 // Parse item name into components
 function parseItemName(fullName) {
   const stattrak = fullName.includes('StatTrak™');
@@ -36,7 +42,23 @@ function parseItemName(fullName) {
   
   const wearLower = wear ? wear.toLowerCase() : null;
   
-  return { gun_type, name, wear: wearLower, stattrak };
+  // Check if it's a Doppler and extract knife name and skin type
+  const isDopplerItem = isDoppler(name);
+  let knife = null;
+  let skin = null;
+  
+  if (isDopplerItem) {
+    // For Dopplers, gun_type is the knife name (e.g., "butterfly knife")
+    knife = gun_type;
+    // Determine if Gamma Doppler or regular Doppler
+    if (name.includes('gamma')) {
+      skin = 'Gamma Doppler';
+    } else {
+      skin = 'Doppler';
+    }
+  }
+  
+  return { gun_type, name, wear: wearLower, stattrak, isDoppler: isDopplerItem, knife, skin };
 }
 
 // Fetch CSFloat price from backend
@@ -61,6 +83,60 @@ async function fetchCSFloatPrice(parsed) {
     console.error('[SkinClub] Error fetching price:', error);
     return null;
   }
+}
+
+// Fetch Doppler price from backend
+async function fetchDopplerPrice(parsed, phase) {
+  try {
+    // Format knife name properly (e.g., "butterfly knife" -> "Butterfly Knife")
+    const knife = parsed.knife.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    const skin = encodeURIComponent(parsed.skin);
+    const phaseEncoded = encodeURIComponent(phase);
+    const stattrak = parsed.stattrak.toString();
+    
+    const url = `${BACKEND_URL}/api/doppler/${encodeURIComponent(knife)}/${skin}/${phaseEncoded}/${stattrak}`;
+    
+    console.log('[SkinClub] Fetching Doppler price:', url);
+    
+    const response = await fetch(url);
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('[SkinClub] Error fetching Doppler price:', error);
+    return null;
+  }
+}
+
+// Try to find phase from item element (look for phase text in the DOM)
+function findPhaseFromElement(itemElement) {
+  // Look for phase text in the item card
+  const textContent = itemElement.textContent;
+  
+  // Check for phase patterns
+  const phasePatterns = [
+    /Phase\s*1/i,
+    /Phase\s*2/i,
+    /Phase\s*3/i,
+    /Phase\s*4/i,
+    /Ruby/i,
+    /Sapphire/i,
+    /Black\s*Pearl/i,
+    /Emerald/i
+  ];
+  
+  for (const pattern of phasePatterns) {
+    const match = textContent.match(pattern);
+    if (match) {
+      // Normalize the phase name
+      let phase = match[0];
+      if (phase.toLowerCase().includes('phase')) {
+        phase = 'Phase ' + phase.replace(/\D/g, '');
+      }
+      return phase;
+    }
+  }
+  
+  return null;
 }
 
 async function processItems() {
@@ -110,15 +186,54 @@ async function processItems() {
     
     priceContainer.appendChild(marker);
     
-    // Fetch CSFloat price
-    const priceData = await fetchCSFloatPrice(parsed);
+    let priceData = null;
     
-    if (priceData && priceData.success) {
-      marker.textContent = `CSFloat: $${priceData.price_usd}`;
-      marker.style.color = '#4caf50';
+    // Check if it's a Doppler item
+    if (parsed.isDoppler) {
+      // Try to find the phase from the item element
+      const phase = findPhaseFromElement(item);
+      
+      if (phase) {
+        console.log('[SkinClub] Doppler detected:', parsed.knife, parsed.skin, phase);
+        priceData = await fetchDopplerPrice(parsed, phase);
+        
+        if (priceData && priceData.success) {
+          marker.textContent = `CSFloat: $${priceData.price_usd}`;
+          marker.style.color = '#4caf50';
+        } else {
+          // Fall back to regular price API
+          priceData = await fetchCSFloatPrice(parsed);
+          if (priceData && priceData.success) {
+            marker.textContent = `CSFloat: $${priceData.price_usd}`;
+            marker.style.color = '#4caf50';
+          } else {
+            marker.textContent = 'CSFloat: N/A';
+            marker.style.color = '#ff9800';
+          }
+        }
+      } else {
+        // No phase found, use regular price API
+        console.log('[SkinClub] Doppler without phase, using base price');
+        priceData = await fetchCSFloatPrice(parsed);
+        if (priceData && priceData.success) {
+          marker.textContent = `CSFloat: $${priceData.price_usd}`;
+          marker.style.color = '#4caf50';
+        } else {
+          marker.textContent = 'CSFloat: N/A';
+          marker.style.color = '#ff9800';
+        }
+      }
     } else {
-      marker.textContent = 'CSFloat: N/A';
-      marker.style.color = '#ff9800';
+      // Regular item - fetch from price API
+      priceData = await fetchCSFloatPrice(parsed);
+      
+      if (priceData && priceData.success) {
+        marker.textContent = `CSFloat: $${priceData.price_usd}`;
+        marker.style.color = '#4caf50';
+      } else {
+        marker.textContent = 'CSFloat: N/A';
+        marker.style.color = '#ff9800';
+      }
     }
   }
   

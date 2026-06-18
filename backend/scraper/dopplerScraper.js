@@ -6,9 +6,23 @@ const HEADLESS = true;
 // Knife def_index mappings
 const KNIFE_IDS = {
   'Butterfly Knife': 515,
-  // Add more knives as we get their IDs:
-  // 'Karambit': ???,
-  // 'M9 Bayonet': ???,
+  'M9 Bayonet': 508,
+  'Karambit': 507,
+  'Nomad Knife': 521,
+  'Flip Knife': 505,
+  'Gut Knife': 506,
+  'Huntsman Knife': 509,
+  'Bayonet': 500,
+  'Bowie Knife': 514,
+  'Falchion Knife': 512,
+  'Navaja Knife': 520,
+  'Paracord Knife': 517,
+  'Shadow Daggers': 516,
+  'Skeleton Knife': 525,
+  'Stiletto Knife': 522,
+  'Talon Knife': 523,
+  'Survival Knife': 518,
+  'Ursus Knife': 519,
 };
 
 // Gamma Doppler paint_index by phase
@@ -133,7 +147,7 @@ async function scrapePrice(item) {
       // Parse price (remove $ and convert to cents)
       const priceMatch = priceText.match(/[\d,]+\.?\d*/);
       if (priceMatch) {
-        const price = parseFloat(priceMatch[0].replace(',', '')) * 100;
+        const price = parseFloat(priceMatch[0].replace(/,/g, '')) * 100;
         console.log(`[Scraper] Found price: $${(price/100).toFixed(2)}`);
         return { success: true, price: Math.round(price) };
       }
@@ -159,7 +173,7 @@ class DopplerScraper {
     this.saveCallback = saveCallback; // Function to save to DB
     
     console.log(`[Scraper] Initialized with ${this.queue.length} items in queue`);
-    console.log(`[Scraper] Full cycle time: ${this.queue.length} minutes`);
+    console.log(`[Scraper] Full cycle time: ${this.queue.length * 5} seconds`);
   }
   
   // Process next item in queue
@@ -191,7 +205,7 @@ class DopplerScraper {
       return;
     }
     
-    console.log('[Scraper] Starting - 1 request per minute');
+    console.log('[Scraper] Starting - 1 request every 5 seconds');
     
     // Process first item immediately
     this.processNext();
@@ -199,7 +213,7 @@ class DopplerScraper {
     // Then process 1 item every minute
     this.intervalId = setInterval(
       () => this.processNext(),
-      60 * 1000 // 1 minute
+      5 * 1000 // 5 seconds
     );
   }
   
